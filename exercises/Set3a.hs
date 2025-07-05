@@ -28,7 +28,7 @@ import Data.List
 --  maxBy head   [1,2,3] [4,5]  ==>  [4,5]
 
 maxBy :: (a -> Int) -> a -> a -> a
-maxBy measure a b = todo
+maxBy measure a b = if measure a >= measure b then a else b 
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement the function mapMaybe that takes a function and a
@@ -40,7 +40,10 @@ maxBy measure a b = todo
 --   mapMaybe length (Just "abc") ==> Just 3
 
 mapMaybe :: (a -> b) -> Maybe a -> Maybe b
-mapMaybe f x = todo
+mapMaybe f x = 
+    case x of 
+        Nothing -> Nothing
+        Just a -> Just $ f a
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the function mapMaybe2 that works like mapMaybe
@@ -54,7 +57,10 @@ mapMaybe f x = todo
 --   mapMaybe2 div (Just 6) Nothing   ==>  Nothing
 
 mapMaybe2 :: (a -> b -> c) -> Maybe a -> Maybe b -> Maybe c
-mapMaybe2 f x y = todo
+mapMaybe2 f x y = 
+    case (x, y) of 
+        (Just i, Just j) -> Just $ f i j
+        _  -> Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: define the functions firstHalf and palindrome so that
@@ -76,9 +82,9 @@ mapMaybe2 f x y = todo
 palindromeHalfs :: [String] -> [String]
 palindromeHalfs xs = map firstHalf (filter palindrome xs)
 
-firstHalf = todo
+firstHalf = \x -> take (div (length x + 1) 2 ) x
 
-palindrome = todo
+palindrome = \x -> reverse x  == x 
 
 ------------------------------------------------------------------------------
 -- Ex 5: Implement a function capitalize that takes in a string and
@@ -96,7 +102,7 @@ palindrome = todo
 --   capitalize "goodbye cruel world" ==> "Goodbye Cruel World"
 
 capitalize :: String -> String
-capitalize = todo
+capitalize = \x -> unwords $ map (\y -> (toUpper $ head y) : (tail y)) (words x)  
 
 ------------------------------------------------------------------------------
 -- Ex 6: powers k max should return all the powers of k that are less
@@ -113,7 +119,7 @@ capitalize = todo
 --   * the function takeWhile
 
 powers :: Int -> Int -> [Int]
-powers k max = todo
+powers k max = takeWhile (\y -> y <= max) [k ^ i | i <- [0..114514114514]]
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a functional while loop. While should be a function
@@ -136,7 +142,7 @@ powers k max = todo
 --     ==> Avvt
 
 while :: (a->Bool) -> (a->a) -> a -> a
-while check update value = todo
+while check update value = if not $ check value then value else while check update $ update value
 
 ------------------------------------------------------------------------------
 -- Ex 8: another version of a while loop. This time, the check
@@ -156,7 +162,10 @@ while check update value = todo
 -- Hint! Remember the case-of expression from lecture 2.
 
 whileRight :: (a -> Either b a) -> a -> b
-whileRight check x = todo
+whileRight check x = 
+    case check x of 
+        Left q -> q
+        Right y -> whileRight check y
 
 -- for the whileRight examples:
 -- step k x doubles x if it's less than k
@@ -180,7 +189,7 @@ bomb x = Right (x-1)
 -- Hint! This is a great use for list comprehensions
 
 joinToLength :: Int -> [String] -> [String]
-joinToLength = todo
+joinToLength = \x y -> filter (\c -> length c == x) [a ++ b | a <-  y, b <- y]
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the operator +|+ that returns a list with the first
@@ -194,6 +203,12 @@ joinToLength = todo
 --   [] +|+ [True]        ==> [True]
 --   [] +|+ []            ==> []
 
+(+|+) :: [a] -> [a] -> [a]
+(+|+) x y = 
+    m ++ n
+        where 
+            m = if null x then [] else take 1 x
+            n = if  null y then [] else take 1 y
 
 ------------------------------------------------------------------------------
 -- Ex 11: remember the lectureParticipants example from Lecture 2? We
@@ -210,7 +225,12 @@ joinToLength = todo
 --   sumRights [Left "bad!", Left "missing"]         ==>  0
 
 sumRights :: [Either a Int] -> Int
-sumRights = todo
+sumRights =  
+    \x -> sum [y | Right y <- filter (
+        \z -> case z of
+            Right i -> True
+            _ -> False
+    ) x]
 
 ------------------------------------------------------------------------------
 -- Ex 12: recall the binary function composition operation
@@ -225,8 +245,8 @@ sumRights = todo
 --   multiCompose [reverse, tail, (++"bar")] "foo" ==> "raboo"
 --   multiCompose [(3*), (2^), (+1)] 0 ==> 6
 --   multiCompose [(+1), (2^), (3*)] 0 ==> 2
-
-multiCompose fs = todo
+multiCompose :: [a -> a] -> (a -> a)
+multiCompose fs = if null fs then id else (head fs) . (multiCompose $ drop 1 fs)
 
 ------------------------------------------------------------------------------
 -- Ex 13: let's consider another way to compose multiple functions. Given
@@ -247,7 +267,8 @@ multiCompose fs = todo
 --   multiApp id [head, (!!2), last] "axbxc" ==> ['a','b','c'] i.e. "abc"
 --   multiApp sum [head, (!!2), last] [1,9,2,9,3] ==> 6
 
-multiApp = todo
+multiApp :: ([a] -> b) -> [c -> a] -> c -> b
+multiApp = \f gs x -> f [g x | g <- gs]
 
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
@@ -282,4 +303,16 @@ multiApp = todo
 -- function, the surprise won't work. See section 3.8 in the material.
 
 interpreter :: [String] -> [String]
-interpreter commands = todo
+interpreter commands = 
+    helper 0 0 [] 0 
+        where 
+            helper x y ans loc =
+                if loc == length commands then reverse ans 
+                else
+                    case commands !! loc of
+                        "up" -> helper x (y + 1) ans (loc + 1)
+                        "down" -> helper x (y - 1) ans (loc + 1)
+                        "left" -> helper (x - 1) y ans (loc + 1)
+                        "right" -> helper (x + 1) y ans (loc + 1)
+                        "printX" -> helper x y ((show x) : ans) (loc + 1)
+                        "printY" -> helper x y ((show y) : ans) (loc + 1)

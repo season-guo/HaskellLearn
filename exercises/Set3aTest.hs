@@ -178,10 +178,10 @@ ex12_empty = property $ do
 
 ex12_scalability = property $ do
   n <- choose (0,9) :: Gen Int
-  let input  = multiCompose (replicate n (succ::Int->Int)) 0
+  let input = multiCompose (replicate n (succ :: Int -> Int)) 0
       output = n
-  return $ counterexample ("multiCompose (replicate " ++ show n ++ " succ) 0")
-         $ input ?== output
+  return $ counterexample ("multiCompose (replicate " ++ show n ++ " succ) 0") $
+    input ?== output
 
 ex12_arithmetic = property $ do
   n  <- choose (0,5) :: Gen Int
