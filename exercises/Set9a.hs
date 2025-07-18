@@ -15,6 +15,9 @@ import Data.List
 import Data.Ord
 
 import Mooc.Todo
+import Data.Bool (Bool(True, False))
+import Data.List.NonEmpty (appendList)
+import GHC.Arr (indices)
 
 ------------------------------------------------------------------------------
 -- Ex 1: Implement a function workload that takes in the number of
@@ -26,7 +29,10 @@ import Mooc.Todo
 -- Otherwise return "Ok."
 
 workload :: Int -> Int -> String
-workload nExercises hoursPerExercise = todo
+workload nExercises hoursPerExercise 
+  | nExercises * hoursPerExercise > 100 = "Holy moly!"
+  | nExercises * hoursPerExercise < 10 = "Piece of cake!"
+  | otherwise = "Ok."
 
 ------------------------------------------------------------------------------
 -- Ex 2: Implement the function echo that builds a string like this:
@@ -39,7 +45,7 @@ workload nExercises hoursPerExercise = todo
 -- Hint: use recursion
 
 echo :: String -> String
-echo = todo
+echo s = if s == "" then "" else s ++ ", " ++ echo (tail s)
 
 ------------------------------------------------------------------------------
 -- Ex 3: A country issues some banknotes. The banknotes have a serial
@@ -52,7 +58,7 @@ echo = todo
 -- are valid.
 
 countValid :: [String] -> Int
-countValid = todo
+countValid = \xs -> if null xs then 0 else if (length (head xs) >= 5 && (head xs) !! 2 == (head xs) !! 4) || (length (head xs) >= 6 && (head xs) !! 3 == (head xs) !! 5) then 1 + countValid (tail xs) else countValid $ tail xs
 
 ------------------------------------------------------------------------------
 -- Ex 4: Find the first element that repeats two or more times _in a
@@ -64,7 +70,9 @@ countValid = todo
 --   repeated [1,2,1,2,3,3] ==> Just 3
 
 repeated :: Eq a => [a] -> Maybe a
-repeated = todo
+repeated = \xs -> case xs of 
+  x : y : left -> if x == y then Just x else repeated $ y : left
+  _ -> Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 5: A laboratory has been collecting measurements. Some of the
@@ -86,8 +94,13 @@ repeated = todo
 --     ==> Left "no data"
 
 sumSuccess :: [Either String Int] -> Either String Int
-sumSuccess = todo
-
+sumSuccess xs = g xs False 0
+  where
+    g s b ans =
+      case s of
+        [] -> if b then Right ans else  Left "no data"
+        (Left _) : _ -> g (tail s) b ans
+        (Right i)  : _ -> g (tail s) True (ans + i)
 ------------------------------------------------------------------------------
 -- Ex 6: A combination lock can either be open or closed. The lock
 -- also remembers a code. A closed lock can only be opened with the
@@ -108,30 +121,41 @@ sumSuccess = todo
 --   isOpen (open "0000" (lock (changeCode "0000" (open "1234" aLock)))) ==> True
 --   isOpen (open "1234" (lock (changeCode "0000" (open "1234" aLock)))) ==> False
 
-data Lock = LockUndefined
+data Lock = Opened String | Locked String
   deriving Show
 
 -- aLock should be a locked lock with the code "1234"
 aLock :: Lock
-aLock = todo
+aLock = Locked "1234" 
 
 -- isOpen returns True if the lock is open
 isOpen :: Lock -> Bool
-isOpen = todo
+isOpen = \l -> case l of 
+  Opened _ -> True
+  _ -> False 
 
 -- open tries to open the lock with the given code. If the code is
 -- wrong, nothing happens.
 open :: String -> Lock -> Lock
-open = todo
+open = \p l -> 
+  case l of
+    Opened _ -> l
+    Locked password -> if p == password then Opened password else l
 
 -- lock closes a lock. If the lock is already closed, nothing happens.
 lock :: Lock -> Lock
-lock = todo
+lock = \l ->
+  case l of
+    Opened password -> Locked password
+    _ -> l
 
 -- changeCode changes the code of an open lock. If the lock is closed,
 -- nothing happens.
 changeCode :: String -> Lock -> Lock
-changeCode = todo
+changeCode = \p l ->
+  case l of
+    Opened _ -> Opened p
+    _ -> l
 
 ------------------------------------------------------------------------------
 -- Ex 7: Here's a type Text that just wraps a String. Implement an Eq
@@ -149,6 +173,8 @@ changeCode = todo
 data Text = Text String
   deriving Show
 
+instance Eq Text where
+  Text a == Text b = foldr (\c -> if c == '\n' || c == ' ' then id else (c :)) [] a  == foldr (\c -> if c == '\n' || c == ' ' then id else (c :)) [] b
 
 ------------------------------------------------------------------------------
 -- Ex 8: We can represent functions or mappings as lists of pairs.
@@ -182,7 +208,12 @@ data Text = Text String
 --       ==> [("a",1),("b",2)]
 
 compose :: (Eq a, Eq b) => [(a,b)] -> [(b,c)] -> [(a,c)]
-compose = todo
+compose xs ys = foldr g [] xs
+  where 
+    g (x, y) = 
+      case lookup y ys of
+        Nothing -> id
+        Just z -> ((x, z) :)
 
 ------------------------------------------------------------------------------
 -- Ex 9: Reorder a list using a list of indices.
@@ -226,4 +257,8 @@ multiply :: Permutation -> Permutation -> Permutation
 multiply p q = map (\i -> p !! (q !! i)) (identity (length p))
 
 permute :: Permutation -> [a] -> [a]
-permute = todo
+permute indices xs = map (\i -> (xs !! (g i 0))) ([0..((length xs) - 1)])
+  where 
+    g i now = if (indices !! now) == i then now else g i (now + 1)  
+
+      
