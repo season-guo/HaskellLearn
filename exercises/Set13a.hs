@@ -11,6 +11,11 @@ import Data.List
 import qualified Data.Map as Map
 
 import Examples.Bank
+import Set10a (play)
+import Test.Hspec (xspecify)
+import Codec.Picture.Metadata (Value(Int))
+import Data.IntMap (findWithDefault)
+import Control.Monad.Trans.Accum (add)
 
 
 ------------------------------------------------------------------------------
@@ -47,19 +52,26 @@ readNames s =
 -- (NB! There are obviously other corner cases like the inputs " " and
 -- "a b c", but you don't need to worry about those here)
 split :: String -> Maybe (String,String)
-split = todo
+split s = Just("", "") ?> go s
+  where 
+    go (x : xs) =
+      if x == ' ' then \(now, _)  -> Just(now, xs)  else \(now , _) -> Just (now ++ [x] , "") ?> go xs
+    go [] = const Nothing
 
 -- checkNumber should take a pair of two strings and return them
 -- unchanged if they don't contain numbers. Otherwise Nothing is
 -- returned.
 checkNumber :: (String, String) -> Maybe (String, String)
-checkNumber = todo
+checkNumber sp = Just sp ?> go 0
+  where 
+    go 10 = \sp -> Just sp
+    go i = \(s1, s2) -> if elem (head $ show i) s1 || elem (head $ show i) s2 then Nothing else Just(s1, s2) ?> go (i + 1)
 
 -- checkCapitals should take a pair of two strings and return them
 -- unchanged if both start with a capital letter. Otherwise Nothing is
 -- returned.
 checkCapitals :: (String, String) -> Maybe (String, String)
-checkCapitals (for,sur) = todo
+checkCapitals (for,sur) = if (isUpper $ head for) && (isUpper $ head sur) then Just(for, sur) else Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given a list of players and their scores (as [(String,Int)]),
@@ -86,7 +98,7 @@ checkCapitals (for,sur) = todo
 --     ==> Just "a"
 
 winner :: [(String,Int)] -> String -> String -> Maybe String
-winner scores player1 player2 = todo
+winner scores player1 player2 = lookup player1 scores ?> \x -> lookup player2 scores ?> \y -> if x >= y then Just player1 else Just player2
 
 ------------------------------------------------------------------------------
 -- Ex 3: given a list of indices and a list of values, return the sum
@@ -103,9 +115,13 @@ winner scores player1 player2 = todo
 --  selectSum [0..10] [4,6,9,20]
 --    Nothing
 
-selectSum :: Num a => [a] -> [Int] -> Maybe a
-selectSum xs is = todo
+selectSum :: (Num a , Eq a) => [a] -> [Int] -> Maybe a
+selectSum xs is = Just 0 >>= go is
+  where 
+    go is x = if null is then Just x else (safeIndex xs $ head is) >>= \y -> Just (x + y) >>= go (tail is)
 
+safeIndex :: [a] -> Int -> Maybe a
+safeIndex xs i = if length xs <= i || i < 0 then Nothing else Just (xs !! i)
 ------------------------------------------------------------------------------
 -- Ex 4: Here is the Logger monad from the course material. Implement
 -- the operation countAndLog which produces the number of elements
@@ -138,8 +154,9 @@ instance Applicative Logger where
   (<*>) = ap
 
 countAndLog :: Show a => (a -> Bool) -> [a] -> Logger Int
-countAndLog = todo
-
+countAndLog f xs = return 0 >>= g xs
+  where 
+    g xs n = if null xs then return n else if f $ head xs then msg (show $ head xs) >>= \_ -> return (n + 1) >>= (g $ tail xs) else g (tail xs) n
 ------------------------------------------------------------------------------
 -- Ex 5: You can find the Bank and BankOp code from the course
 -- material in the module Examples.Bank (file
@@ -152,10 +169,10 @@ countAndLog = todo
 -- from Data.Map are available under the prefix Map.
 
 exampleBank :: Bank
-exampleBank = (Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)]))
+exampleBank = Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)])
 
 balance :: String -> BankOp Int
-balance accountName = todo
+balance accountName = BankOp(\bank -> case bank of Bank b -> (Map.findWithDefault 0 accountName b, bank))
 
 ------------------------------------------------------------------------------
 -- Ex 6: Using the operations balance, withdrawOp and depositOp, and
@@ -173,7 +190,8 @@ balance accountName = todo
 --     ==> ((),Bank (fromList [("cedric",7),("ginny",1),("harry",10)]))
 
 rob :: String -> String -> BankOp ()
-rob from to = todo
+rob from to =  balance from +> withdrawOp from +> depositOp to
+
 
 ------------------------------------------------------------------------------
 -- Ex 7: using the State monad, write the operation `update` that first
@@ -185,7 +203,7 @@ rob from to = todo
 --    ==> ((),7)
 
 update :: State Int ()
-update = todo
+update =  modify ((+1).(*2))
 
 ------------------------------------------------------------------------------
 -- Ex 8: Checking that parentheses are balanced with the State monad.
@@ -213,7 +231,7 @@ update = todo
 --   parensMatch "(()))("      ==> False
 
 paren :: Char -> State Int ()
-paren = todo
+paren c = modify (\x -> if x == -1 then -1 else if c == '(' then x + 1 else x - 1)
 
 parensMatch :: String -> Bool
 parensMatch s = count == 0
@@ -244,8 +262,10 @@ parensMatch s = count == 0
 -- PS. The order of the list of pairs doesn't matter
 
 count :: Eq a => a -> State [(a,Int)] ()
-count x = todo
+count x = modify (\xs -> findAndadd xs x)
 
+findAndadd [] n = [(n, 1)]
+findAndadd (x : xs) n = if fst x == n then (fst x, snd x + 1) : xs else x : findAndadd xs n
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
 --   1. runs the count operation on each element in the input list
@@ -266,4 +286,4 @@ count x = todo
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
 
 occurrences :: (Eq a) => [a] -> State [(a,Int)] Int
-occurrences xs = todo
+occurrences xs = if null xs then get >>= return . length else (count $ head xs) >> (occurrences $ tail xs)
